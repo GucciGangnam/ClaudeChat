@@ -1,10 +1,17 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { spawnSync } from 'child_process'
 import * as pty from 'node-pty'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { loadChats, getChats, findChat, touchChat, type StoredChat } from './store'
+import {
+  loadChats,
+  getChats,
+  findChat,
+  touchChat,
+  addChat,
+  type StoredChat
+} from './store'
 
 type Chat = StoredChat & { status: 'running' | 'stopped' }
 
@@ -137,6 +144,25 @@ app.whenReady().then(() => {
   loadChats()
 
   ipcMain.handle('chats:list', () => chatsWithStatus())
+
+  ipcMain.handle('chats:openDirectory', async () => {
+    if (!mainWindow) return null
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory', 'createDirectory'],
+      message: 'Pick a working directory for the new chat'
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    return result.filePaths[0]
+  })
+
+  ipcMain.handle(
+    'chats:create',
+    (_event, input: { name: string; workingDirectory: string }) => {
+      const chat = addChat(input)
+      notifyChatsChanged()
+      return { ...chat, status: 'stopped' as const }
+    }
+  )
 
   ipcMain.on('chat:attach', (_event, chatId: string, cols: number, rows: number) => {
     attachChat(chatId, cols, rows)

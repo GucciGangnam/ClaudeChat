@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import Terminal from './components/Terminal'
 import Sidebar from './components/Sidebar'
+import NewChatDialog from './components/NewChatDialog'
 import type { Chat } from '../../preload'
 
 function App(): React.JSX.Element {
   const [chats, setChats] = useState<Chat[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const [newChatOpen, setNewChatOpen] = useState(false)
 
   const refresh = useCallback(async (): Promise<Chat[]> => {
     const list = await window.api.chats.list()
@@ -27,9 +29,19 @@ function App(): React.JSX.Element {
 
   const activeChat = chats.find((c) => c.id === activeChatId) ?? null
 
+  const handleCreated = (chatId: string): void => {
+    setNewChatOpen(false)
+    setActiveChatId(chatId)
+  }
+
   return (
     <div className="app">
-      <Sidebar chats={chats} activeChatId={activeChatId} onSelect={setActiveChatId} />
+      <Sidebar
+        chats={chats}
+        activeChatId={activeChatId}
+        onSelect={setActiveChatId}
+        onNewChat={() => setNewChatOpen(true)}
+      />
       <main className="main-pane">
         {activeChat ? (
           <>
@@ -48,6 +60,9 @@ function App(): React.JSX.Element {
           <div className="empty-pane">No chat selected</div>
         )}
       </main>
+      {newChatOpen && (
+        <NewChatDialog onClose={() => setNewChatOpen(false)} onCreated={handleCreated} />
+      )}
     </div>
   )
 }

@@ -14,6 +14,9 @@ export type Chat = {
 const api = {
   chats: {
     list: (): Promise<Chat[]> => ipcRenderer.invoke('chats:list'),
+    openDirectory: (): Promise<string | null> => ipcRenderer.invoke('chats:openDirectory'),
+    create: (input: { name: string; workingDirectory: string }): Promise<Chat> =>
+      ipcRenderer.invoke('chats:create', input),
     onChanged: (handler: () => void): (() => void) => {
       const listener = (_event: IpcRendererEvent): void => handler()
       ipcRenderer.on('chats:changed', listener)

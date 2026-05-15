@@ -78,3 +78,22 @@ export function touchChat(id: string): void {
   chat.lastActiveAt = Date.now()
   saveChats()
 }
+
+export function addChat(input: {
+  name: string
+  workingDirectory: string
+}): StoredChat {
+  const id = crypto.randomUUID()
+  const now = Date.now()
+  const chat: StoredChat = {
+    id,
+    name: input.name,
+    workingDirectory: input.workingDirectory,
+    tmuxSessionName: `claudechat-${id}`,
+    createdAt: now,
+    lastActiveAt: now
+  }
+  chats.push(chat)
+  saveChats()
+  return chat
+}

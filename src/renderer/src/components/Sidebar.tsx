@@ -4,12 +4,23 @@ type Props = {
   chats: Chat[]
   activeChatId: string | null
   onSelect: (chatId: string) => void
+  onNewChat: () => void
 }
 
-export default function Sidebar({ chats, activeChatId, onSelect }: Props): React.JSX.Element {
+export default function Sidebar({
+  chats,
+  activeChatId,
+  onSelect,
+  onNewChat
+}: Props): React.JSX.Element {
   return (
     <aside className="sidebar">
-      <div className="sidebar-header">Chats</div>
+      <div className="sidebar-header">
+        <span>Chats</span>
+        <button type="button" className="new-chat-btn" onClick={onNewChat} title="New chat">
+          + New
+        </button>
+      </div>
       <ul className="chat-list">
         {chats.map((chat) => {
           const className = [
