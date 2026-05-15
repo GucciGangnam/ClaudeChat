@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import { spawnSync } from 'child_process'
@@ -24,7 +24,9 @@ let activeChatId: string | null = null
 const unread = new Set<string>()
 const fileWatchers = new Map<string, fs.FSWatcher>()
 const fileOffsets = new Map<string, number>()
+const lastNotifyAt = new Map<string, number>()
 const BEL = 0x07
+const NOTIFY_DEBOUNCE_MS = 5000
 
 function pipeDir(): string {
   return join(app.getPath('userData'), 'pipes')
@@ -103,17 +105,46 @@ function watchPipeFile(chat: StoredChat): void {
   }
   const watcher = fs.watch(pipePath(chat.id), () => {
     const buf = readNewBytes(chat.id)
-    if (chat.id === activeChatId) return
     if (!buf || buf.length === 0) return
-    // Only flip unread when claude actually rings the terminal bell — that's
-    // its "I have something for you" signal. Filters out cursor-blink redraws.
+    // Only act on claude's terminal bell — its "I have something for you"
+    // signal. Filters out cursor-blink redraws.
     if (!buf.includes(BEL)) return
-    if (!unread.has(chat.id)) {
+
+    const isActiveChat = chat.id === activeChatId
+    const windowFocused = mainWindow?.isFocused() ?? false
+    // The user is "seeing" this chat only if they're focused on the app AND
+    // it's the active chat. Otherwise they need to be told.
+    if (isActiveChat && windowFocused) return
+
+    if (!isActiveChat && !unread.has(chat.id)) {
       unread.add(chat.id)
       notifyChatsChanged()
     }
+    notifyOS(chat)
   })
   fileWatchers.set(chat.id, watcher)
+}
+
+function notifyOS(chat: StoredChat): void {
+  if (!Notification.isSupported()) return
+  const now = Date.now()
+  const last = lastNotifyAt.get(chat.id) ?? 0
+  if (now - last < NOTIFY_DEBOUNCE_MS) return
+  lastNotifyAt.set(chat.id, now)
+  const n = new Notification({
+    title: chat.name,
+    body: 'Claude is waiting for you',
+    silent: false
+  })
+  n.on('click', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
+      mainWindow.focus()
+      mainWindow.webContents.send('chat:select', chat.id)
+    }
+  })
+  n.show()
 }
 
 function setupPipeForChat(chat: StoredChat): void {
@@ -140,6 +171,7 @@ function teardownPipeForChat(chat: StoredChat): void {
     fileWatchers.delete(chat.id)
   }
   fileOffsets.delete(chat.id)
+  lastNotifyAt.delete(chat.id)
   fs.rmSync(pipePath(chat.id), { force: true })
 }
 

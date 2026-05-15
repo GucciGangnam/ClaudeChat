@@ -23,10 +23,16 @@ function App(): React.JSX.Element {
         setActiveChatId((current) => current ?? list[0].id)
       }
     })
-    const off = window.api.chats.onChanged(() => {
+    const offChanged = window.api.chats.onChanged(() => {
       void refresh()
     })
-    return off
+    const offSelect = window.api.chat.onSelect((chatId) => {
+      setActiveChatId(chatId)
+    })
+    return () => {
+      offChanged()
+      offSelect()
+    }
   }, [refresh])
 
   const activeChat = chats.find((c) => c.id === activeChatId) ?? null

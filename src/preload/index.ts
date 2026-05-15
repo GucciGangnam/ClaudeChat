@@ -42,6 +42,11 @@ const api = {
       ): void => handler(payload.chatId, payload.data)
       ipcRenderer.on('chat:output', listener)
       return () => ipcRenderer.removeListener('chat:output', listener)
+    },
+    onSelect: (handler: (chatId: string) => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent, chatId: string): void => handler(chatId)
+      ipcRenderer.on('chat:select', listener)
+      return () => ipcRenderer.removeListener('chat:select', listener)
     }
   }
 }
