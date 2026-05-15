@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Notification } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, Notification, nativeTheme } from 'electron'
 import { join } from 'path'
 import fs from 'fs'
 import { spawnSync } from 'child_process'
@@ -254,8 +254,13 @@ function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 1100,
     height: 720,
+    minWidth: 760,
+    minHeight: 480,
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: 'hiddenInset',
+    trafficLightPosition: { x: 14, y: 16 },
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1a1c' : '#f5f5f7',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

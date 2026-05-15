@@ -63,27 +63,30 @@ function App(): React.JSX.Element {
       <main className="main-pane">
         {activeChat ? (
           <>
-            <header className="titlebar">
-              <span className="titlebar-name">{activeChat.name}</span>
-              <span className="titlebar-cwd">{activeChat.workingDirectory}</span>
-              <span className={'titlebar-status status-' + activeChat.status}>
-                {activeChat.status}
-              </span>
+            <header className="chat-header">
+              <div className="chat-header-text">
+                <div className="chat-header-name">{activeChat.name}</div>
+                <div className="chat-header-cwd">{activeChat.workingDirectory}</div>
+              </div>
+              <span className={'pill pill-' + activeChat.status}>{activeChat.status}</span>
               <button
                 type="button"
-                className="end-chat-btn"
+                className="ghost-btn ghost-btn-danger"
                 onClick={() => setEndChatId(activeChat.id)}
                 title="End this chat"
               >
                 End
               </button>
             </header>
-            <div className="terminal-pane">
+            <div className="terminal-card">
               <Terminal key={activeChat.id} chatId={activeChat.id} />
             </div>
           </>
         ) : (
-          <div className="empty-pane">No chat selected</div>
+          <div className="empty-pane">
+            <div className="empty-title">No chat selected</div>
+            <div className="empty-sub">Create one from the sidebar to get started.</div>
+          </div>
         )}
       </main>
       {newChatOpen && (
