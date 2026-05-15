@@ -10,6 +10,7 @@ import {
   findChat,
   touchChat,
   addChat,
+  removeChat,
   type StoredChat
 } from './store'
 
@@ -163,6 +164,15 @@ app.whenReady().then(() => {
       return { ...chat, status: 'stopped' as const }
     }
   )
+
+  ipcMain.handle('chats:end', (_event, chatId: string) => {
+    const chat = findChat(chatId)
+    if (!chat) return
+    if (activeChatId === chatId) detachPty()
+    spawnSync('tmux', ['kill-session', '-t', chat.tmuxSessionName])
+    removeChat(chatId)
+    notifyChatsChanged()
+  })
 
   ipcMain.on('chat:attach', (_event, chatId: string, cols: number, rows: number) => {
     attachChat(chatId, cols, rows)

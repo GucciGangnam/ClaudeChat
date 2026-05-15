@@ -17,6 +17,7 @@ const api = {
     openDirectory: (): Promise<string | null> => ipcRenderer.invoke('chats:openDirectory'),
     create: (input: { name: string; workingDirectory: string }): Promise<Chat> =>
       ipcRenderer.invoke('chats:create', input),
+    end: (chatId: string): Promise<void> => ipcRenderer.invoke('chats:end', chatId),
     onChanged: (handler: () => void): (() => void) => {
       const listener = (_event: IpcRendererEvent): void => handler()
       ipcRenderer.on('chats:changed', listener)

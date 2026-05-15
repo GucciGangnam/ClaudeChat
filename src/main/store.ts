@@ -79,6 +79,13 @@ export function touchChat(id: string): void {
   saveChats()
 }
 
+export function removeChat(id: string): void {
+  const idx = chats.findIndex((c) => c.id === id)
+  if (idx === -1) return
+  chats.splice(idx, 1)
+  saveChats()
+}
+
 export function addChat(input: {
   name: string
   workingDirectory: string
