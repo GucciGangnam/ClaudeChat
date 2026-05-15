@@ -1,19 +1,50 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import os from 'os'
+import { spawnSync } from 'child_process'
 import * as pty from 'node-pty'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+// Phase 3: single hardcoded session. Per-chat sessions arrive in Phase 4.
+const SESSION_NAME = 'claudechat-default'
+
 let ptyProcess: pty.IPty | null = null
 
+function tmuxSessionExists(name: string): boolean {
+  return spawnSync('tmux', ['has-session', '-t', name]).status === 0
+}
+
+function ensureTmuxSession(name: string, cwd: string, cols: number, rows: number): void {
+  if (tmuxSessionExists(name)) return
+  spawnSync('tmux', [
+    'new-session',
+    '-d',
+    '-s',
+    name,
+    '-x',
+    String(cols),
+    '-y',
+    String(rows),
+    '-c',
+    cwd,
+    'claude'
+  ])
+  // Hide tmux's own status bar so the wrap looks seamless.
+  spawnSync('tmux', ['set-option', '-t', name, 'status', 'off'])
+}
+
 function spawnPty(window: BrowserWindow): void {
-  // Phase 2: hardcoded — directory picker arrives in Phase 6.
   const cwd = os.homedir()
-  ptyProcess = pty.spawn('claude', [], {
+  const cols = 80
+  const rows = 24
+
+  ensureTmuxSession(SESSION_NAME, cwd, cols, rows)
+
+  ptyProcess = pty.spawn('tmux', ['-2', 'attach', '-t', SESSION_NAME], {
     name: 'xterm-256color',
-    cols: 80,
-    rows: 24,
+    cols,
+    rows,
     cwd,
     env: process.env as Record<string, string>
   })
@@ -27,6 +58,15 @@ function spawnPty(window: BrowserWindow): void {
   ptyProcess.onExit(() => {
     ptyProcess = null
   })
+}
+
+function detachPty(): void {
+  // Killing the tmux client just detaches; the session and `claude` keep
+  // running on the tmux server. That's the whole point of this phase.
+  if (ptyProcess) {
+    ptyProcess.kill()
+    ptyProcess = null
+  }
 }
 
 function createWindow(): void {
@@ -52,10 +92,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('closed', () => {
-    if (ptyProcess) {
-      ptyProcess.kill()
-      ptyProcess = null
-    }
+    detachPty()
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -96,10 +133,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  if (ptyProcess) {
-    ptyProcess.kill()
-    ptyProcess = null
-  }
+  detachPty()
   if (process.platform !== 'darwin') {
     app.quit()
   }
