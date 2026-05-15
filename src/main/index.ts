@@ -25,6 +25,11 @@ import {
 
 type Chat = StoredChat & { status: 'running' | 'stopped'; unread: boolean }
 
+// Override the dev binary's "Electron" name everywhere it appears (menu bar,
+// notifications source, About panel). Must run before app.whenReady().
+app.setName('ClaudeChat')
+app.setAboutPanelOptions({ applicationName: 'ClaudeChat' })
+
 let mainWindow: BrowserWindow | null = null
 let ptyProcess: pty.IPty | null = null
 let activeChatId: string | null = null
