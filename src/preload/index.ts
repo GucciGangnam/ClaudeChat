@@ -1,18 +1,33 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
+export type Chat = {
+  id: string
+  name: string
+  workingDirectory: string
+}
+
 const api = {
-  pty: {
-    sendInput: (data: string): void => {
-      ipcRenderer.send('pty:input', data)
+  chats: {
+    list: (): Promise<Chat[]> => ipcRenderer.invoke('chats:list')
+  },
+  chat: {
+    attach: (chatId: string, cols: number, rows: number): void => {
+      ipcRenderer.send('chat:attach', chatId, cols, rows)
     },
-    resize: (cols: number, rows: number): void => {
-      ipcRenderer.send('pty:resize', cols, rows)
+    sendInput: (chatId: string, data: string): void => {
+      ipcRenderer.send('chat:input', chatId, data)
     },
-    onOutput: (handler: (data: string) => void): (() => void) => {
-      const listener = (_event: IpcRendererEvent, data: string): void => handler(data)
-      ipcRenderer.on('pty:output', listener)
-      return () => ipcRenderer.removeListener('pty:output', listener)
+    resize: (chatId: string, cols: number, rows: number): void => {
+      ipcRenderer.send('chat:resize', chatId, cols, rows)
+    },
+    onOutput: (handler: (chatId: string, data: string) => void): (() => void) => {
+      const listener = (
+        _event: IpcRendererEvent,
+        payload: { chatId: string; data: string }
+      ): void => handler(payload.chatId, payload.data)
+      ipcRenderer.on('chat:output', listener)
+      return () => ipcRenderer.removeListener('chat:output', listener)
     }
   }
 }

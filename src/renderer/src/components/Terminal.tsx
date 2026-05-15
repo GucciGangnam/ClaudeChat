@@ -3,7 +3,9 @@ import { Terminal as XTerm } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 
-export default function Terminal(): React.JSX.Element {
+type Props = { chatId: string }
+
+export default function Terminal({ chatId }: Props): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -25,20 +27,22 @@ export default function Terminal(): React.JSX.Element {
     term.open(containerRef.current)
     fitAddon.fit()
 
+    const offOutput = window.api.chat.onOutput((incomingChatId, data) => {
+      if (incomingChatId === chatId) {
+        term.write(data)
+      }
+    })
+
     const inputDisposable = term.onData((data) => {
-      window.api.pty.sendInput(data)
+      window.api.chat.sendInput(chatId, data)
     })
 
-    const offOutput = window.api.pty.onOutput((data) => {
-      term.write(data)
-    })
-
-    window.api.pty.resize(term.cols, term.rows)
+    window.api.chat.attach(chatId, term.cols, term.rows)
 
     const handleResize = (): void => {
       try {
         fitAddon.fit()
-        window.api.pty.resize(term.cols, term.rows)
+        window.api.chat.resize(chatId, term.cols, term.rows)
       } catch {
         // ignore transient resize errors
       }
@@ -55,7 +59,7 @@ export default function Terminal(): React.JSX.Element {
       inputDisposable.dispose()
       term.dispose()
     }
-  }, [])
+  }, [chatId])
 
   return <div ref={containerRef} className="terminal" />
 }

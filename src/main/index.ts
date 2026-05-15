@@ -6,10 +6,32 @@ import * as pty from 'node-pty'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-// Phase 3: single hardcoded session. Per-chat sessions arrive in Phase 4.
-const SESSION_NAME = 'claudechat-default'
+type Chat = {
+  id: string
+  name: string
+  workingDirectory: string
+}
 
+// Phase 4: hardcoded seed chats. The new-chat flow lands in Phase 6.
+const CHATS: Chat[] = [
+  { id: 'home', name: 'Home', workingDirectory: os.homedir() },
+  {
+    id: 'claudechat',
+    name: 'ClaudeChat',
+    workingDirectory: join(os.homedir(), 'Documents/Programming/ClaudeChat')
+  },
+  {
+    id: 'sandbox',
+    name: 'Sandbox',
+    workingDirectory: join(os.homedir(), 'Documents/Programming/Sandbox')
+  }
+]
+
+const sessionName = (chatId: string): string => `claudechat-${chatId}`
+
+let mainWindow: BrowserWindow | null = null
 let ptyProcess: pty.IPty | null = null
+let activeChatId: string | null = null
 
 function tmuxSessionExists(name: string): boolean {
   return spawnSync('tmux', ['has-session', '-t', name]).status === 0
@@ -30,49 +52,55 @@ function ensureTmuxSession(name: string, cwd: string, cols: number, rows: number
     cwd,
     'claude'
   ])
-  // Hide tmux's own status bar so the wrap looks seamless.
   spawnSync('tmux', ['set-option', '-t', name, 'status', 'off'])
 }
 
-function spawnPty(window: BrowserWindow): void {
-  const cwd = os.homedir()
-  const cols = 80
-  const rows = 24
-
-  ensureTmuxSession(SESSION_NAME, cwd, cols, rows)
-
-  ptyProcess = pty.spawn('tmux', ['-2', 'attach', '-t', SESSION_NAME], {
-    name: 'xterm-256color',
-    cols,
-    rows,
-    cwd,
-    env: process.env as Record<string, string>
-  })
-
-  ptyProcess.onData((data) => {
-    if (!window.isDestroyed()) {
-      window.webContents.send('pty:output', data)
-    }
-  })
-
-  ptyProcess.onExit(() => {
-    ptyProcess = null
-  })
-}
-
 function detachPty(): void {
-  // Killing the tmux client just detaches; the session and `claude` keep
-  // running on the tmux server. That's the whole point of this phase.
   if (ptyProcess) {
     ptyProcess.kill()
     ptyProcess = null
   }
+  activeChatId = null
+}
+
+function attachChat(chatId: string, cols: number, rows: number): void {
+  const chat = CHATS.find((c) => c.id === chatId)
+  if (!chat || !mainWindow) return
+  if (activeChatId === chatId && ptyProcess) return
+
+  detachPty()
+  ensureTmuxSession(sessionName(chat.id), chat.workingDirectory, cols, rows)
+
+  const proc = pty.spawn('tmux', ['-2', 'attach', '-t', sessionName(chat.id)], {
+    name: 'xterm-256color',
+    cols,
+    rows,
+    cwd: chat.workingDirectory,
+    env: process.env as Record<string, string>
+  })
+
+  ptyProcess = proc
+  activeChatId = chat.id
+  const window = mainWindow
+
+  proc.onData((data) => {
+    if (!window.isDestroyed()) {
+      window.webContents.send('chat:output', { chatId: chat.id, data })
+    }
+  })
+
+  proc.onExit(() => {
+    if (ptyProcess === proc) {
+      ptyProcess = null
+      activeChatId = null
+    }
+  })
 }
 
 function createWindow(): void {
-  const mainWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
+  mainWindow = new BrowserWindow({
+    width: 1100,
+    height: 720,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -83,7 +111,7 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -93,6 +121,7 @@ function createWindow(): void {
 
   mainWindow.on('closed', () => {
     detachPty()
+    mainWindow = null
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -100,8 +129,6 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
-
-  spawnPty(mainWindow)
 }
 
 app.whenReady().then(() => {
@@ -111,12 +138,20 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.on('pty:input', (_event, data: string) => {
-    ptyProcess?.write(data)
+  ipcMain.handle('chats:list', () => CHATS)
+
+  ipcMain.on('chat:attach', (_event, chatId: string, cols: number, rows: number) => {
+    attachChat(chatId, cols, rows)
   })
 
-  ipcMain.on('pty:resize', (_event, cols: number, rows: number) => {
-    if (ptyProcess && cols > 0 && rows > 0) {
+  ipcMain.on('chat:input', (_event, chatId: string, data: string) => {
+    if (chatId === activeChatId) {
+      ptyProcess?.write(data)
+    }
+  })
+
+  ipcMain.on('chat:resize', (_event, chatId: string, cols: number, rows: number) => {
+    if (chatId === activeChatId && ptyProcess && cols > 0 && rows > 0) {
       try {
         ptyProcess.resize(cols, rows)
       } catch {
