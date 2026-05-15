@@ -12,6 +12,14 @@ import {
   touchChat,
   addChat,
   removeChat,
+  renameChat,
+  assignChatToProject,
+  loadProjects,
+  getProjects,
+  addProject,
+  renameProject,
+  removeProject,
+  setProjectCollapsed,
   type StoredChat
 } from './store'
 
@@ -199,6 +207,12 @@ function notifyChatsChanged(): void {
   }
 }
 
+function notifyProjectsChanged(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('projects:changed')
+  }
+}
+
 function detachPty(): void {
   if (ptyProcess) {
     ptyProcess.kill()
@@ -297,6 +311,7 @@ app.whenReady().then(() => {
   })
 
   loadChats()
+  loadProjects()
   setupAllPipes()
 
   ipcMain.handle('chats:list', () => chatsWithStatus())
@@ -313,12 +328,58 @@ app.whenReady().then(() => {
 
   ipcMain.handle(
     'chats:create',
-    (_event, input: { name: string; workingDirectory: string }) => {
+    (
+      _event,
+      input: { name: string; workingDirectory: string; projectId?: string | null }
+    ) => {
       const chat = addChat(input)
       notifyChatsChanged()
       return { ...chat, status: 'stopped' as const, unread: false }
     }
   )
+
+  ipcMain.handle('chats:rename', (_event, chatId: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    renameChat(chatId, trimmed)
+    notifyChatsChanged()
+  })
+
+  ipcMain.handle(
+    'chats:assignProject',
+    (_event, chatId: string, projectId: string | null) => {
+      assignChatToProject(chatId, projectId)
+      notifyChatsChanged()
+    }
+  )
+
+  ipcMain.handle('projects:list', () => getProjects())
+
+  ipcMain.handle('projects:create', (_event, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return null
+    const project = addProject(trimmed)
+    notifyProjectsChanged()
+    return project
+  })
+
+  ipcMain.handle('projects:rename', (_event, projectId: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    renameProject(projectId, trimmed)
+    notifyProjectsChanged()
+  })
+
+  ipcMain.handle('projects:setCollapsed', (_event, projectId: string, collapsed: boolean) => {
+    setProjectCollapsed(projectId, collapsed)
+    notifyProjectsChanged()
+  })
+
+  ipcMain.handle('projects:remove', (_event, projectId: string) => {
+    removeProject(projectId)
+    notifyProjectsChanged()
+    notifyChatsChanged()
+  })
 
   ipcMain.handle('chats:end', (_event, chatId: string) => {
     const chat = findChat(chatId)

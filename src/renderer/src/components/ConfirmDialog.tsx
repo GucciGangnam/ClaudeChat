@@ -1,13 +1,22 @@
 import { useEffect } from 'react'
-import type { Chat } from '../../../preload'
 
 type Props = {
-  chat: Chat
+  title: string
+  body: React.ReactNode
+  confirmLabel?: string
+  cancelLabel?: string
   onCancel: () => void
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
 }
 
-export default function EndChatConfirm({ chat, onCancel, onConfirm }: Props): React.JSX.Element {
+export default function ConfirmDialog({
+  title,
+  body,
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  onCancel,
+  onConfirm
+}: Props): React.JSX.Element {
   useEffect(() => {
     const handler = (e: KeyboardEvent): void => {
       if (e.key === 'Escape') onCancel()
@@ -19,20 +28,14 @@ export default function EndChatConfirm({ chat, onCancel, onConfirm }: Props): Re
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">End chat</div>
-        <div className="modal-body">
-          <p className="modal-text">
-            End chat <strong>{chat.name}</strong>? This kills its tmux session and discards
-            all conversation history. Cannot be undone.
-          </p>
-          <p className="modal-text-muted">{chat.workingDirectory}</p>
-        </div>
+        <div className="modal-header">{title}</div>
+        <div className="modal-body">{body}</div>
         <div className="modal-actions">
           <button type="button" onClick={onCancel} className="btn-secondary">
-            Cancel
+            {cancelLabel}
           </button>
           <button type="button" onClick={onConfirm} className="btn-danger">
-            End chat
+            {confirmLabel}
           </button>
         </div>
       </div>

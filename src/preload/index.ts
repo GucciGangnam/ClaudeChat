@@ -10,19 +10,50 @@ export type Chat = {
   lastActiveAt: number
   status: 'running' | 'stopped'
   unread: boolean
+  projectId?: string | null
+}
+
+export type Project = {
+  id: string
+  name: string
+  createdAt: number
+  collapsed: boolean
 }
 
 const api = {
   chats: {
     list: (): Promise<Chat[]> => ipcRenderer.invoke('chats:list'),
     openDirectory: (): Promise<string | null> => ipcRenderer.invoke('chats:openDirectory'),
-    create: (input: { name: string; workingDirectory: string }): Promise<Chat> =>
-      ipcRenderer.invoke('chats:create', input),
+    create: (input: {
+      name: string
+      workingDirectory: string
+      projectId?: string | null
+    }): Promise<Chat> => ipcRenderer.invoke('chats:create', input),
+    rename: (chatId: string, name: string): Promise<void> =>
+      ipcRenderer.invoke('chats:rename', chatId, name),
     end: (chatId: string): Promise<void> => ipcRenderer.invoke('chats:end', chatId),
+    assignProject: (chatId: string, projectId: string | null): Promise<void> =>
+      ipcRenderer.invoke('chats:assignProject', chatId, projectId),
     onChanged: (handler: () => void): (() => void) => {
       const listener = (_event: IpcRendererEvent): void => handler()
       ipcRenderer.on('chats:changed', listener)
       return () => ipcRenderer.removeListener('chats:changed', listener)
+    }
+  },
+  projects: {
+    list: (): Promise<Project[]> => ipcRenderer.invoke('projects:list'),
+    create: (name: string): Promise<Project | null> =>
+      ipcRenderer.invoke('projects:create', name),
+    rename: (projectId: string, name: string): Promise<void> =>
+      ipcRenderer.invoke('projects:rename', projectId, name),
+    setCollapsed: (projectId: string, collapsed: boolean): Promise<void> =>
+      ipcRenderer.invoke('projects:setCollapsed', projectId, collapsed),
+    remove: (projectId: string): Promise<void> =>
+      ipcRenderer.invoke('projects:remove', projectId),
+    onChanged: (handler: () => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent): void => handler()
+      ipcRenderer.on('projects:changed', listener)
+      return () => ipcRenderer.removeListener('projects:changed', listener)
     }
   },
   chat: {
