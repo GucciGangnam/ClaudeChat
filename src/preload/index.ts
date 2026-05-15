@@ -5,11 +5,20 @@ export type Chat = {
   id: string
   name: string
   workingDirectory: string
+  tmuxSessionName: string
+  createdAt: number
+  lastActiveAt: number
+  status: 'running' | 'stopped'
 }
 
 const api = {
   chats: {
-    list: (): Promise<Chat[]> => ipcRenderer.invoke('chats:list')
+    list: (): Promise<Chat[]> => ipcRenderer.invoke('chats:list'),
+    onChanged: (handler: () => void): (() => void) => {
+      const listener = (_event: IpcRendererEvent): void => handler()
+      ipcRenderer.on('chats:changed', listener)
+      return () => ipcRenderer.removeListener('chats:changed', listener)
+    }
   },
   chat: {
     attach: (chatId: string, cols: number, rows: number): void => {

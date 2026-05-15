@@ -1,33 +1,12 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import os from 'os'
 import { spawnSync } from 'child_process'
 import * as pty from 'node-pty'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { loadChats, getChats, findChat, touchChat, type StoredChat } from './store'
 
-type Chat = {
-  id: string
-  name: string
-  workingDirectory: string
-}
-
-// Phase 4: hardcoded seed chats. The new-chat flow lands in Phase 6.
-const CHATS: Chat[] = [
-  { id: 'home', name: 'Home', workingDirectory: os.homedir() },
-  {
-    id: 'claudechat',
-    name: 'ClaudeChat',
-    workingDirectory: join(os.homedir(), 'Documents/Programming/ClaudeChat')
-  },
-  {
-    id: 'sandbox',
-    name: 'Sandbox',
-    workingDirectory: join(os.homedir(), 'Documents/Programming/Sandbox')
-  }
-]
-
-const sessionName = (chatId: string): string => `claudechat-${chatId}`
+type Chat = StoredChat & { status: 'running' | 'stopped' }
 
 let mainWindow: BrowserWindow | null = null
 let ptyProcess: pty.IPty | null = null
@@ -55,6 +34,19 @@ function ensureTmuxSession(name: string, cwd: string, cols: number, rows: number
   spawnSync('tmux', ['set-option', '-t', name, 'status', 'off'])
 }
 
+function chatsWithStatus(): Chat[] {
+  return getChats().map((c) => ({
+    ...c,
+    status: tmuxSessionExists(c.tmuxSessionName) ? 'running' : 'stopped'
+  }))
+}
+
+function notifyChatsChanged(): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('chats:changed')
+  }
+}
+
 function detachPty(): void {
   if (ptyProcess) {
     ptyProcess.kill()
@@ -64,14 +56,14 @@ function detachPty(): void {
 }
 
 function attachChat(chatId: string, cols: number, rows: number): void {
-  const chat = CHATS.find((c) => c.id === chatId)
+  const chat = findChat(chatId)
   if (!chat || !mainWindow) return
   if (activeChatId === chatId && ptyProcess) return
 
   detachPty()
-  ensureTmuxSession(sessionName(chat.id), chat.workingDirectory, cols, rows)
+  ensureTmuxSession(chat.tmuxSessionName, chat.workingDirectory, cols, rows)
 
-  const proc = pty.spawn('tmux', ['-2', 'attach', '-t', sessionName(chat.id)], {
+  const proc = pty.spawn('tmux', ['-2', 'attach', '-t', chat.tmuxSessionName], {
     name: 'xterm-256color',
     cols,
     rows,
@@ -93,8 +85,12 @@ function attachChat(chatId: string, cols: number, rows: number): void {
     if (ptyProcess === proc) {
       ptyProcess = null
       activeChatId = null
+      notifyChatsChanged()
     }
   })
+
+  touchChat(chat.id)
+  notifyChatsChanged()
 }
 
 function createWindow(): void {
@@ -138,7 +134,9 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.handle('chats:list', () => CHATS)
+  loadChats()
+
+  ipcMain.handle('chats:list', () => chatsWithStatus())
 
   ipcMain.on('chat:attach', (_event, chatId: string, cols: number, rows: number) => {
     attachChat(chatId, cols, rows)

@@ -11,16 +11,27 @@ export default function Sidebar({ chats, activeChatId, onSelect }: Props): React
     <aside className="sidebar">
       <div className="sidebar-header">Chats</div>
       <ul className="chat-list">
-        {chats.map((chat) => (
-          <li
-            key={chat.id}
-            className={'chat-item' + (chat.id === activeChatId ? ' active' : '')}
-            onClick={() => onSelect(chat.id)}
-          >
-            <div className="chat-name">{chat.name}</div>
-            <div className="chat-cwd">{chat.workingDirectory}</div>
-          </li>
-        ))}
+        {chats.map((chat) => {
+          const className = [
+            'chat-item',
+            chat.id === activeChatId ? 'active' : '',
+            chat.status === 'stopped' ? 'stopped' : ''
+          ]
+            .filter(Boolean)
+            .join(' ')
+          return (
+            <li key={chat.id} className={className} onClick={() => onSelect(chat.id)}>
+              <div className="chat-name">
+                <span
+                  className={'status-dot status-dot-' + chat.status}
+                  title={chat.status}
+                />
+                {chat.name}
+              </div>
+              <div className="chat-cwd">{chat.workingDirectory}</div>
+            </li>
+          )
+        })}
       </ul>
     </aside>
   )
