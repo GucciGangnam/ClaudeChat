@@ -8,12 +8,13 @@ import icon from '../../resources/icon.png?asset'
 let ptyProcess: pty.IPty | null = null
 
 function spawnPty(window: BrowserWindow): void {
-  const shellPath = process.env.SHELL || '/bin/bash'
-  ptyProcess = pty.spawn(shellPath, [], {
+  // Phase 2: hardcoded — directory picker arrives in Phase 6.
+  const cwd = os.homedir()
+  ptyProcess = pty.spawn('claude', [], {
     name: 'xterm-256color',
     cols: 80,
     rows: 24,
-    cwd: os.homedir(),
+    cwd,
     env: process.env as Record<string, string>
   })
 
