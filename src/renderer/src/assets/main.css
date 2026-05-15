@@ -173,6 +173,26 @@ body {
   opacity: 0.55;
 }
 
+.chat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-item.unread .chat-name {
+  font-weight: 700;
+  color: #fff;
+}
+
+.unread-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4a9eff;
+}
+
 .terminal-pane {
   flex: 1 1 auto;
   min-height: 0;

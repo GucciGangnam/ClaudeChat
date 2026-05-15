@@ -23,21 +23,26 @@ export default function Sidebar({
       </div>
       <ul className="chat-list">
         {chats.map((chat) => {
+          const isActive = chat.id === activeChatId
           const className = [
             'chat-item',
-            chat.id === activeChatId ? 'active' : '',
-            chat.status === 'stopped' ? 'stopped' : ''
+            isActive ? 'active' : '',
+            chat.status === 'stopped' ? 'stopped' : '',
+            chat.unread && !isActive ? 'unread' : ''
           ]
             .filter(Boolean)
             .join(' ')
           return (
             <li key={chat.id} className={className} onClick={() => onSelect(chat.id)}>
-              <div className="chat-name">
-                <span
-                  className={'status-dot status-dot-' + chat.status}
-                  title={chat.status}
-                />
-                {chat.name}
+              <div className="chat-row">
+                <div className="chat-name">
+                  <span
+                    className={'status-dot status-dot-' + chat.status}
+                    title={chat.status}
+                  />
+                  {chat.name}
+                </div>
+                {chat.unread && !isActive && <span className="unread-dot" title="New activity" />}
               </div>
               <div className="chat-cwd">{chat.workingDirectory}</div>
             </li>

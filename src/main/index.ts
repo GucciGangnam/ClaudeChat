@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
+import fs from 'fs'
 import { spawnSync } from 'child_process'
 import * as pty from 'node-pty'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -14,11 +15,29 @@ import {
   type StoredChat
 } from './store'
 
-type Chat = StoredChat & { status: 'running' | 'stopped' }
+type Chat = StoredChat & { status: 'running' | 'stopped'; unread: boolean }
 
 let mainWindow: BrowserWindow | null = null
 let ptyProcess: pty.IPty | null = null
 let activeChatId: string | null = null
+
+const unread = new Set<string>()
+const fileWatchers = new Map<string, fs.FSWatcher>()
+const fileOffsets = new Map<string, number>()
+const BEL = 0x07
+
+function pipeDir(): string {
+  return join(app.getPath('userData'), 'pipes')
+}
+
+function pipePath(chatId: string): string {
+  return join(pipeDir(), `${chatId}.log`)
+}
+
+function shQuote(s: string): string {
+  // Single-quote for /bin/sh: wrap in '…' and escape any embedded ' as '\''.
+  return "'" + s.replace(/'/g, "'\\''") + "'"
+}
 
 function tmuxSessionExists(name: string): boolean {
   return spawnSync('tmux', ['has-session', '-t', name]).status === 0
@@ -42,10 +61,103 @@ function ensureTmuxSession(name: string, cwd: string, cols: number, rows: number
   spawnSync('tmux', ['set-option', '-t', name, 'status', 'off'])
 }
 
+function readNewBytes(chatId: string): Buffer | null {
+  const file = pipePath(chatId)
+  let stats: fs.Stats
+  try {
+    stats = fs.statSync(file)
+  } catch {
+    return null
+  }
+  let offset = fileOffsets.get(chatId) ?? 0
+  if (stats.size < offset) offset = 0 // file truncated/recreated
+  const len = stats.size - offset
+  fileOffsets.set(chatId, stats.size)
+  if (len <= 0) return null
+  const buf = Buffer.alloc(len)
+  let fd: number
+  try {
+    fd = fs.openSync(file, 'r')
+  } catch {
+    return null
+  }
+  try {
+    fs.readSync(fd, buf, 0, len, offset)
+  } finally {
+    fs.closeSync(fd)
+  }
+  return buf
+}
+
+function watchPipeFile(chat: StoredChat): void {
+  const existing = fileWatchers.get(chat.id)
+  if (existing) {
+    existing.close()
+    fileWatchers.delete(chat.id)
+  }
+  // Start tracking from end-of-file so prior bytes don't trigger a phantom unread.
+  try {
+    fileOffsets.set(chat.id, fs.statSync(pipePath(chat.id)).size)
+  } catch {
+    fileOffsets.set(chat.id, 0)
+  }
+  const watcher = fs.watch(pipePath(chat.id), () => {
+    const buf = readNewBytes(chat.id)
+    if (chat.id === activeChatId) return
+    if (!buf || buf.length === 0) return
+    // Only flip unread when claude actually rings the terminal bell — that's
+    // its "I have something for you" signal. Filters out cursor-blink redraws.
+    if (!buf.includes(BEL)) return
+    if (!unread.has(chat.id)) {
+      unread.add(chat.id)
+      notifyChatsChanged()
+    }
+  })
+  fileWatchers.set(chat.id, watcher)
+}
+
+function setupPipeForChat(chat: StoredChat): void {
+  if (!tmuxSessionExists(chat.tmuxSessionName)) return
+  fs.mkdirSync(pipeDir(), { recursive: true })
+  // Touch the file so fs.watch has something to attach to.
+  fs.closeSync(fs.openSync(pipePath(chat.id), 'a'))
+  // Close any prior pipe-pane wrapper, then open a fresh one.
+  spawnSync('tmux', ['pipe-pane', '-t', chat.tmuxSessionName])
+  spawnSync('tmux', [
+    'pipe-pane',
+    '-t',
+    chat.tmuxSessionName,
+    `cat >> ${shQuote(pipePath(chat.id))}`
+  ])
+  watchPipeFile(chat)
+}
+
+function teardownPipeForChat(chat: StoredChat): void {
+  spawnSync('tmux', ['pipe-pane', '-t', chat.tmuxSessionName])
+  const watcher = fileWatchers.get(chat.id)
+  if (watcher) {
+    watcher.close()
+    fileWatchers.delete(chat.id)
+  }
+  fileOffsets.delete(chat.id)
+  fs.rmSync(pipePath(chat.id), { force: true })
+}
+
+function setupAllPipes(): void {
+  for (const chat of getChats()) setupPipeForChat(chat)
+}
+
+function clearUnread(chatId: string): void {
+  if (unread.delete(chatId)) {
+    notifyChatsChanged()
+  }
+}
+
 function chatsWithStatus(): Chat[] {
   return getChats().map((c) => ({
     ...c,
-    status: tmuxSessionExists(c.tmuxSessionName) ? 'running' : 'stopped'
+    status: tmuxSessionExists(c.tmuxSessionName) ? 'running' : 'stopped',
+    unread: unread.has(c.id)
   }))
 }
 
@@ -66,10 +178,14 @@ function detachPty(): void {
 function attachChat(chatId: string, cols: number, rows: number): void {
   const chat = findChat(chatId)
   if (!chat || !mainWindow) return
-  if (activeChatId === chatId && ptyProcess) return
+  if (activeChatId === chatId && ptyProcess) {
+    clearUnread(chatId)
+    return
+  }
 
   detachPty()
   ensureTmuxSession(chat.tmuxSessionName, chat.workingDirectory, cols, rows)
+  setupPipeForChat(chat)
 
   const proc = pty.spawn('tmux', ['-2', 'attach', '-t', chat.tmuxSessionName], {
     name: 'xterm-256color',
@@ -98,6 +214,7 @@ function attachChat(chatId: string, cols: number, rows: number): void {
   })
 
   touchChat(chat.id)
+  clearUnread(chat.id)
   notifyChatsChanged()
 }
 
@@ -143,6 +260,7 @@ app.whenReady().then(() => {
   })
 
   loadChats()
+  setupAllPipes()
 
   ipcMain.handle('chats:list', () => chatsWithStatus())
 
@@ -161,7 +279,7 @@ app.whenReady().then(() => {
     (_event, input: { name: string; workingDirectory: string }) => {
       const chat = addChat(input)
       notifyChatsChanged()
-      return { ...chat, status: 'stopped' as const }
+      return { ...chat, status: 'stopped' as const, unread: false }
     }
   )
 
@@ -169,8 +287,10 @@ app.whenReady().then(() => {
     const chat = findChat(chatId)
     if (!chat) return
     if (activeChatId === chatId) detachPty()
+    teardownPipeForChat(chat)
     spawnSync('tmux', ['kill-session', '-t', chat.tmuxSessionName])
     removeChat(chatId)
+    unread.delete(chatId)
     notifyChatsChanged()
   })
 
@@ -203,6 +323,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   detachPty()
+  for (const watcher of fileWatchers.values()) watcher.close()
+  fileWatchers.clear()
   if (process.platform !== 'darwin') {
     app.quit()
   }

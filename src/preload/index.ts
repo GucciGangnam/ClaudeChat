@@ -9,6 +9,7 @@ export type Chat = {
   createdAt: number
   lastActiveAt: number
   status: 'running' | 'stopped'
+  unread: boolean
 }
 
 const api = {
