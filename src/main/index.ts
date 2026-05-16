@@ -1,5 +1,6 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, Notification, nativeTheme } from 'electron'
 import { join } from 'path'
+import os from 'os'
 import fs from 'fs'
 import { spawnSync } from 'child_process'
 import * as pty from 'node-pty'
@@ -13,6 +14,7 @@ import {
   addChat,
   removeChat,
   renameChat,
+  setChatColor,
   assignChatToProject,
   loadProjects,
   getProjects,
@@ -29,6 +31,22 @@ type Chat = StoredChat & { status: 'running' | 'stopped'; unread: boolean }
 // notifications source, About panel). Must run before app.whenReady().
 app.setName('ClaudeChat')
 app.setAboutPanelOptions({ applicationName: 'ClaudeChat' })
+
+// macOS GUI launches inherit a minimal PATH from Launch Services. Without
+// these, packaged builds can't find tmux (Homebrew) or claude (~/.local/bin
+// or npm globals), the PTY exits silently, and the terminal stays empty.
+{
+  const extras = [
+    '/opt/homebrew/bin',
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',
+    join(os.homedir(), '.local/bin'),
+    join(os.homedir(), '.npm-global/bin'),
+    join(os.homedir(), '.volta/bin')
+  ]
+  const current = (process.env.PATH ?? '').split(':').filter(Boolean)
+  process.env.PATH = Array.from(new Set([...extras, ...current])).join(':')
+}
 
 let mainWindow: BrowserWindow | null = null
 let ptyProcess: pty.IPty | null = null
@@ -347,6 +365,11 @@ app.whenReady().then(() => {
     const trimmed = name.trim()
     if (!trimmed) return
     renameChat(chatId, trimmed)
+    notifyChatsChanged()
+  })
+
+  ipcMain.handle('chats:setColor', (_event, chatId: string, color: string | null) => {
+    setChatColor(chatId, color)
     notifyChatsChanged()
   })
 

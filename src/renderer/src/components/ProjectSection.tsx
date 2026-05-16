@@ -12,6 +12,7 @@ type Props = {
   onChatToggleMenu: (chatId: string) => void
   onChatCloseMenu: () => void
   onChatRename: (chatId: string) => void
+  onChatSetColor: (chatId: string, color: string | null) => void
   onProjectRename?: (projectId: string) => void
   onProjectDelete?: (projectId: string) => void
   onProjectToggleCollapsed?: (projectId: string) => void
@@ -30,6 +31,7 @@ export default function ProjectSection({
   onChatToggleMenu,
   onChatCloseMenu,
   onChatRename,
+  onChatSetColor,
   onProjectRename,
   onProjectDelete,
   onProjectToggleCollapsed,
@@ -160,6 +162,7 @@ export default function ProjectSection({
                 onToggleMenu={() => onChatToggleMenu(chat.id)}
                 onCloseMenu={onChatCloseMenu}
                 onRename={() => onChatRename(chat.id)}
+                onSetColor={(color) => onChatSetColor(chat.id, color)}
               />
             ))
           )}

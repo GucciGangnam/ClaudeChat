@@ -33,7 +33,7 @@ export default function Terminal({ chatId }: Props): React.JSX.Element {
     const term = new XTerm({
       cursorBlink: true,
       fontFamily: '"SF Mono", Menlo, Monaco, "Courier New", monospace',
-      fontSize: 13,
+      fontSize: 11,
       lineHeight: 1.2,
       theme: themeFor(colorSchemeQuery.matches),
       allowProposedApi: true

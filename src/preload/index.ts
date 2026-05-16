@@ -11,6 +11,7 @@ export type Chat = {
   status: 'running' | 'stopped'
   unread: boolean
   projectId?: string | null
+  color?: string | null
 }
 
 export type Project = {
@@ -31,6 +32,8 @@ const api = {
     }): Promise<Chat> => ipcRenderer.invoke('chats:create', input),
     rename: (chatId: string, name: string): Promise<void> =>
       ipcRenderer.invoke('chats:rename', chatId, name),
+    setColor: (chatId: string, color: string | null): Promise<void> =>
+      ipcRenderer.invoke('chats:setColor', chatId, color),
     end: (chatId: string): Promise<void> => ipcRenderer.invoke('chats:end', chatId),
     assignProject: (chatId: string, projectId: string | null): Promise<void> =>
       ipcRenderer.invoke('chats:assignProject', chatId, projectId),

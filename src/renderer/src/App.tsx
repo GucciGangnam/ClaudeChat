@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import NewChatDialog from './components/NewChatDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import RenameDialog from './components/RenameDialog'
+import { colorForChat } from './components/colors'
 import type { Chat, Project } from '../../preload'
 
 function App(): React.JSX.Element {
@@ -99,12 +100,22 @@ function App(): React.JSX.Element {
         onNewChat={() => setNewChatOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}
         onChatRename={(chatId) => setRenameChatId(chatId)}
+        onChatSetColor={(chatId, color) => {
+          void window.api.chats.setColor(chatId, color)
+        }}
         onProjectRename={(projectId) => setRenameProjectId(projectId)}
         onProjectDelete={(projectId) => setDeleteProjectId(projectId)}
         onProjectToggleCollapsed={handleProjectToggleCollapsed}
         onAssignChatProject={handleAssignChatProject}
       />
-      <main className="main-pane">
+      <main
+        className={'main-pane' + (activeChat ? ' has-accent' : '')}
+        style={
+          activeChat
+            ? ({ '--chat-accent': colorForChat(activeChat.id, activeChat.color) } as React.CSSProperties)
+            : undefined
+        }
+      >
         {activeChat ? (
           <>
             <header className="chat-header">

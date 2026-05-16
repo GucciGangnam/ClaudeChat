@@ -11,6 +11,7 @@ export type StoredChat = {
   createdAt: number
   lastActiveAt: number
   projectId?: string | null
+  color?: string | null
 }
 
 export type StoredProject = {
@@ -106,6 +107,13 @@ export function renameChat(id: string, name: string): void {
   const chat = findChat(id)
   if (!chat) return
   chat.name = name
+  saveChats()
+}
+
+export function setChatColor(id: string, color: string | null): void {
+  const chat = findChat(id)
+  if (!chat) return
+  chat.color = color
   saveChats()
 }
 

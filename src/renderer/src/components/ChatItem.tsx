@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Chat } from '../../../preload'
 import Avatar from './Avatar'
+import { CHAT_PALETTE } from './colors'
 
 function relativeTime(ms: number): string {
   const diff = Date.now() - ms
@@ -25,6 +26,7 @@ type Props = {
   onToggleMenu: () => void
   onCloseMenu: () => void
   onRename: () => void
+  onSetColor: (color: string | null) => void
 }
 
 export default function ChatItem({
@@ -34,7 +36,8 @@ export default function ChatItem({
   onSelect,
   onToggleMenu,
   onCloseMenu,
-  onRename
+  onRename,
+  onSetColor
 }: Props): React.JSX.Element {
   const wrapperRef = useRef<HTMLDivElement | null>(null)
 
@@ -72,7 +75,7 @@ export default function ChatItem({
       onDragStart={handleDragStart}
       onClick={onSelect}
     >
-      <Avatar id={chat.id} name={chat.name} status={chat.status} />
+      <Avatar id={chat.id} name={chat.name} status={chat.status} color={chat.color} />
       <div className="chat-text">
         <div className="chat-row">
           <span className="chat-name">{chat.name}</span>
@@ -111,6 +114,28 @@ export default function ChatItem({
             >
               Rename
             </button>
+            <div className="menu-divider" />
+            <div className="menu-section-label">Color</div>
+            <div className="color-row">
+              <button
+                type="button"
+                className={'color-swatch color-swatch-auto' + (!chat.color ? ' selected' : '')}
+                title="Auto"
+                onClick={() => onSetColor(null)}
+              >
+                A
+              </button>
+              {CHAT_PALETTE.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className={'color-swatch' + (chat.color === c ? ' selected' : '')}
+                  title={c}
+                  style={{ background: c }}
+                  onClick={() => onSetColor(c)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
