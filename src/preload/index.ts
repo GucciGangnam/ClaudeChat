@@ -12,6 +12,7 @@ export type Chat = {
   unread: boolean
   projectId?: string | null
   color?: string | null
+  badges?: string[]
 }
 
 export type Project = {
@@ -34,6 +35,8 @@ const api = {
       ipcRenderer.invoke('chats:rename', chatId, name),
     setColor: (chatId: string, color: string | null): Promise<void> =>
       ipcRenderer.invoke('chats:setColor', chatId, color),
+    setBadges: (chatId: string, badges: string[]): Promise<void> =>
+      ipcRenderer.invoke('chats:setBadges', chatId, badges),
     end: (chatId: string): Promise<void> => ipcRenderer.invoke('chats:end', chatId),
     assignProject: (chatId: string, projectId: string | null): Promise<void> =>
       ipcRenderer.invoke('chats:assignProject', chatId, projectId),

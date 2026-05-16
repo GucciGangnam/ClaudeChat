@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar'
 import NewChatDialog from './components/NewChatDialog'
 import ConfirmDialog from './components/ConfirmDialog'
 import RenameDialog from './components/RenameDialog'
+import BadgesDialog from './components/BadgesDialog'
 import { colorForChat } from './components/colors'
 import type { Chat, Project } from '../../preload'
 
@@ -14,6 +15,7 @@ function App(): React.JSX.Element {
   const [newChatOpen, setNewChatOpen] = useState(false)
   const [endChatId, setEndChatId] = useState<string | null>(null)
   const [renameChatId, setRenameChatId] = useState<string | null>(null)
+  const [badgesChatId, setBadgesChatId] = useState<string | null>(null)
   const [newProjectOpen, setNewProjectOpen] = useState(false)
   const [renameProjectId, setRenameProjectId] = useState<string | null>(null)
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null)
@@ -56,6 +58,7 @@ function App(): React.JSX.Element {
   const activeChat = chats.find((c) => c.id === activeChatId) ?? null
   const endingChat = chats.find((c) => c.id === endChatId) ?? null
   const renamingChat = chats.find((c) => c.id === renameChatId) ?? null
+  const badgesChat = chats.find((c) => c.id === badgesChatId) ?? null
   const renamingProject = projects.find((p) => p.id === renameProjectId) ?? null
   const deletingProject = projects.find((p) => p.id === deleteProjectId) ?? null
 
@@ -103,6 +106,7 @@ function App(): React.JSX.Element {
         onChatSetColor={(chatId, color) => {
           void window.api.chats.setColor(chatId, color)
         }}
+        onChatEditBadges={(chatId) => setBadgesChatId(chatId)}
         onProjectRename={(projectId) => setRenameProjectId(projectId)}
         onProjectDelete={(projectId) => setDeleteProjectId(projectId)}
         onProjectToggleCollapsed={handleProjectToggleCollapsed}
@@ -163,6 +167,9 @@ function App(): React.JSX.Element {
           onCancel={() => setEndChatId(null)}
           onConfirm={handleConfirmEnd}
         />
+      )}
+      {badgesChat && (
+        <BadgesDialog chat={badgesChat} onClose={() => setBadgesChatId(null)} />
       )}
       {renamingChat && (
         <RenameDialog

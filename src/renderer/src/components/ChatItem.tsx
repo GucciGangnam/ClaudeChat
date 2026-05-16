@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { Chat } from '../../../preload'
 import Avatar from './Avatar'
+import BadgeIcon from './BadgeIcon'
 import { CHAT_PALETTE } from './colors'
 
 function relativeTime(ms: number): string {
@@ -27,6 +28,7 @@ type Props = {
   onCloseMenu: () => void
   onRename: () => void
   onSetColor: (color: string | null) => void
+  onEditBadges: () => void
 }
 
 export default function ChatItem({
@@ -37,7 +39,8 @@ export default function ChatItem({
   onToggleMenu,
   onCloseMenu,
   onRename,
-  onSetColor
+  onSetColor,
+  onEditBadges
 }: Props): React.JSX.Element {
   const wrapperRef = useRef<HTMLDivElement | null>(null)
 
@@ -84,6 +87,13 @@ export default function ChatItem({
         <div className="chat-cwd" title={chat.workingDirectory}>
           {chat.workingDirectory}
         </div>
+        {chat.badges && chat.badges.length > 0 && (
+          <div className="chat-badges">
+            {chat.badges.map((slug) => (
+              <BadgeIcon key={slug} slug={slug} size={13} />
+            ))}
+          </div>
+        )}
       </div>
       {chat.unread && !isActive && !isMenuOpen && <span className="unread-dot" />}
       <div className="kebab-wrapper" ref={wrapperRef}>
@@ -113,6 +123,16 @@ export default function ChatItem({
               }}
             >
               Rename
+            </button>
+            <button
+              type="button"
+              className="menu-item"
+              onClick={() => {
+                onCloseMenu()
+                onEditBadges()
+              }}
+            >
+              Badges…
             </button>
             <div className="menu-divider" />
             <div className="menu-section-label">Color</div>

@@ -13,6 +13,7 @@ type Props = {
   onChatCloseMenu: () => void
   onChatRename: (chatId: string) => void
   onChatSetColor: (chatId: string, color: string | null) => void
+  onChatEditBadges: (chatId: string) => void
   onProjectRename?: (projectId: string) => void
   onProjectDelete?: (projectId: string) => void
   onProjectToggleCollapsed?: (projectId: string) => void
@@ -32,6 +33,7 @@ export default function ProjectSection({
   onChatCloseMenu,
   onChatRename,
   onChatSetColor,
+  onChatEditBadges,
   onProjectRename,
   onProjectDelete,
   onProjectToggleCollapsed,
@@ -163,6 +165,7 @@ export default function ProjectSection({
                 onCloseMenu={onChatCloseMenu}
                 onRename={() => onChatRename(chat.id)}
                 onSetColor={(color) => onChatSetColor(chat.id, color)}
+                onEditBadges={() => onChatEditBadges(chat.id)}
               />
             ))
           )}

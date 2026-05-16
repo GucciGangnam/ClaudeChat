@@ -11,6 +11,7 @@ type Props = {
   onNewProject: () => void
   onChatRename: (chatId: string) => void
   onChatSetColor: (chatId: string, color: string | null) => void
+  onChatEditBadges: (chatId: string) => void
   onProjectRename: (projectId: string) => void
   onProjectDelete: (projectId: string) => void
   onProjectToggleCollapsed: (projectId: string) => void
@@ -28,6 +29,7 @@ export default function Sidebar({
   onNewProject,
   onChatRename,
   onChatSetColor,
+  onChatEditBadges,
   onProjectRename,
   onProjectDelete,
   onProjectToggleCollapsed,
@@ -147,6 +149,7 @@ export default function Sidebar({
             onChatCloseMenu={handleChatCloseMenu}
             onChatRename={onChatRename}
             onChatSetColor={onChatSetColor}
+            onChatEditBadges={onChatEditBadges}
             // No drop handlers: nothing to drop into when there are no projects.
             onDragOverSection={() => {}}
             onDragLeaveSection={() => {}}
@@ -166,6 +169,7 @@ export default function Sidebar({
                 onChatCloseMenu={handleChatCloseMenu}
                 onChatRename={onChatRename}
                 onChatSetColor={onChatSetColor}
+                onChatEditBadges={onChatEditBadges}
                 {...makeDropHandlers(UNGROUPED)}
               />
             )}
@@ -182,6 +186,7 @@ export default function Sidebar({
                 onChatCloseMenu={handleChatCloseMenu}
                 onChatRename={onChatRename}
                 onChatSetColor={onChatSetColor}
+                onChatEditBadges={onChatEditBadges}
                 onProjectRename={onProjectRename}
                 onProjectDelete={onProjectDelete}
                 onProjectToggleCollapsed={onProjectToggleCollapsed}

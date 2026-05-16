@@ -343,6 +343,25 @@ button {
   text-overflow: ellipsis;
 }
 
+.chat-badges {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.chat-badges .badge-icon {
+  display: block;
+}
+
+@media (prefers-color-scheme: light) {
+  .chat-badges .badge-icon {
+    /* Dark logos (e.g. GitHub) need a slight lightening to stay legible
+       against the light sidebar background. */
+    filter: none;
+  }
+}
+
 .unread-dot {
   position: absolute;
   right: 12px;
@@ -693,6 +712,99 @@ button {
   box-shadow: var(--shadow-modal);
   overflow: hidden;
   animation: modalIn 140ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+.modal-wide {
+  width: 620px;
+}
+
+.modal-header-sub {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.selected-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.badge-chip:hover {
+  border-color: var(--danger);
+}
+
+.badge-chip-x {
+  color: var(--text-tertiary);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.badge-chip:hover .badge-chip-x {
+  color: var(--danger);
+}
+
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 4px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.badge-grid-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+  padding: 24px 0;
+}
+
+.badge-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-align: left;
+  min-width: 0;
+}
+
+.badge-cell:hover {
+  background: var(--bg-hover);
+}
+
+.badge-cell.selected {
+  background: var(--bg-active);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.badge-cell-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
 }
 
 @keyframes fadeIn {

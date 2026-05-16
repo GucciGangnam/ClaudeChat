@@ -15,6 +15,7 @@ import {
   removeChat,
   renameChat,
   setChatColor,
+  setChatBadges,
   assignChatToProject,
   loadProjects,
   getProjects,
@@ -370,6 +371,11 @@ app.whenReady().then(() => {
 
   ipcMain.handle('chats:setColor', (_event, chatId: string, color: string | null) => {
     setChatColor(chatId, color)
+    notifyChatsChanged()
+  })
+
+  ipcMain.handle('chats:setBadges', (_event, chatId: string, badges: string[]) => {
+    setChatBadges(chatId, Array.isArray(badges) ? badges : [])
     notifyChatsChanged()
   })
 
