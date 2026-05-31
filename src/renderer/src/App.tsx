@@ -13,6 +13,21 @@ function App(): React.JSX.Element {
   const [projects, setProjects] = useState<Project[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
   const [focusTick, setFocusTick] = useState(0)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('sidebar-collapsed') === '1'
+    } catch {
+      return false
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('sidebar-collapsed', sidebarCollapsed ? '1' : '0')
+    } catch {
+      // ignore quota / private-browsing failures
+    }
+  }, [sidebarCollapsed])
   const [newChatOpen, setNewChatOpen] = useState(false)
   const [endChatId, setEndChatId] = useState<string | null>(null)
   const [renameChatId, setRenameChatId] = useState<string | null>(null)
@@ -107,6 +122,8 @@ function App(): React.JSX.Element {
         chats={chats}
         projects={projects}
         activeChatId={activeChatId}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((c) => !c)}
         onSelect={handleSelectChat}
         onNewChat={() => setNewChatOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}

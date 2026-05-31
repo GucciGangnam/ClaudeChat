@@ -77,6 +77,7 @@ export default function ChatItem({
       draggable
       onDragStart={handleDragStart}
       onClick={onSelect}
+      title={chat.name}
     >
       <Avatar id={chat.id} name={chat.name} status={chat.status} color={chat.color} />
       <div className="chat-text">

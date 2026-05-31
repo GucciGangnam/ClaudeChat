@@ -100,6 +100,70 @@ button {
   border-right: 1px solid var(--border-subtle);
   user-select: none;
   position: relative;
+  transition: flex-basis 180ms ease;
+}
+
+.sidebar.collapsed {
+  flex: 0 0 64px;
+}
+
+/* In collapsed mode, hide every text-heavy element and let the row
+   collapse around the avatar. */
+.sidebar.collapsed .sidebar-title,
+.sidebar.collapsed .chat-text,
+.sidebar.collapsed .chat-badges,
+.sidebar.collapsed .ungrouped-label,
+.sidebar.collapsed .project-name,
+.sidebar.collapsed .project-count,
+.sidebar.collapsed .empty-section,
+.sidebar.collapsed .kebab-wrapper {
+  display: none;
+}
+
+.sidebar.collapsed .chat-item {
+  justify-content: center;
+  padding: 6px 0;
+}
+
+.sidebar.collapsed .unread-dot {
+  right: 6px;
+  top: 6px;
+  transform: none;
+  width: 7px;
+  height: 7px;
+}
+
+.sidebar.collapsed .project-section {
+  margin-left: 4px;
+  margin-right: 4px;
+  padding: 0;
+}
+
+.sidebar.collapsed .project-header {
+  /* Keep the project header as a thin colored separator strip so you can
+     still tell groups apart at a glance. */
+  height: 4px;
+  padding: 0;
+  margin: 6px 8px;
+  background: var(--border-subtle);
+  border-radius: 2px;
+  cursor: default;
+  pointer-events: none;
+}
+
+.sidebar.collapsed .project-chevron,
+.sidebar.collapsed .project-header > * {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 0 8px 12px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-header-actions {
+  flex-direction: column;
+  gap: 6px;
 }
 
 .sidebar-drag-handle {

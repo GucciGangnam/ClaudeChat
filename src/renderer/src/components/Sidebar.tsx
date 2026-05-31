@@ -6,6 +6,8 @@ type Props = {
   chats: Chat[]
   projects: Project[]
   activeChatId: string | null
+  collapsed: boolean
+  onToggleCollapsed: () => void
   onSelect: (chatId: string) => void
   onNewChat: () => void
   onNewProject: () => void
@@ -24,6 +26,8 @@ export default function Sidebar({
   chats,
   projects,
   activeChatId,
+  collapsed,
+  onToggleCollapsed,
   onSelect,
   onNewChat,
   onNewProject,
@@ -97,34 +101,36 @@ export default function Sidebar({
   const showUngroupedSection = projects.length > 0
 
   return (
-    <aside className="sidebar">
+    <aside className={'sidebar' + (collapsed ? ' collapsed' : '')}>
       <div className="sidebar-drag-handle" />
       <div className="sidebar-header">
-        <span className="sidebar-title">Chats</span>
+        {!collapsed && <span className="sidebar-title">Chats</span>}
         <div className="sidebar-header-actions">
-          <button
-            type="button"
-            className="header-icon-btn"
-            onClick={onNewProject}
-            title="New project"
-            aria-label="New project"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
-              <path
-                d="M2 4.2c0-.66.54-1.2 1.2-1.2h2.8l1.3 1.5h5.5c.66 0 1.2.54 1.2 1.2v6.1c0 .66-.54 1.2-1.2 1.2H3.2c-.66 0-1.2-.54-1.2-1.2V4.2z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M8 7.5v3M6.5 9h3"
-                stroke="currentColor"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          {!collapsed && (
+            <button
+              type="button"
+              className="header-icon-btn"
+              onClick={onNewProject}
+              title="New project"
+              aria-label="New project"
+            >
+              <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+                <path
+                  d="M2 4.2c0-.66.54-1.2 1.2-1.2h2.8l1.3 1.5h5.5c.66 0 1.2.54 1.2 1.2v6.1c0 .66-.54 1.2-1.2 1.2H3.2c-.66 0-1.2-.54-1.2-1.2V4.2z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M8 7.5v3M6.5 9h3"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          )}
           <button
             type="button"
             className="header-icon-btn"
@@ -133,6 +139,24 @@ export default function Sidebar({
             aria-label="New chat"
           >
             +
+          </button>
+          <button
+            type="button"
+            className="header-icon-btn"
+            onClick={onToggleCollapsed}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+              <path
+                d={collapsed ? 'M6 4l4 4-4 4' : 'M10 4l-4 4 4 4'}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </div>
       </div>
