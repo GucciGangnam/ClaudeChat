@@ -92,7 +92,17 @@ function ensureTmuxSession(name: string, cwd: string, cols: number, rows: number
     cwd,
     'claude'
   ])
+  configureTmuxSession(name)
+}
+
+function configureTmuxSession(name: string): void {
+  // Hide tmux's status bar so the wrap looks seamless.
   spawnSync('tmux', ['set-option', '-t', name, 'status', 'off'])
+  // Enable tmux's native mouse handling so wheel events scroll the pane's
+  // own history (which contains everything claude has ever rendered).
+  // Without this, xterm.js falls back to "wheel sends arrow keys in
+  // alt-screen mode", which claude treats as prompt-history navigation.
+  spawnSync('tmux', ['set-option', '-t', name, 'mouse', 'on'])
 }
 
 function readNewBytes(chatId: string): Buffer | null {
@@ -255,6 +265,10 @@ function attachChat(chatId: string, cols: number, rows: number): void {
 
   detachPty()
   ensureTmuxSession(chat.tmuxSessionName, chat.workingDirectory, cols, rows)
+  // Re-apply config so older sessions created before mouse-on was added
+  // pick up the new options on next attach. Setting an option that's
+  // already at the target value is a no-op.
+  configureTmuxSession(chat.tmuxSessionName)
   setupPipeForChat(chat)
 
   const proc = pty.spawn('tmux', ['-2', 'attach', '-t', chat.tmuxSessionName], {
