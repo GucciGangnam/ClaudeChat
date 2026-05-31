@@ -12,6 +12,7 @@ function App(): React.JSX.Element {
   const [chats, setChats] = useState<Chat[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [activeChatId, setActiveChatId] = useState<string | null>(null)
+  const [focusTick, setFocusTick] = useState(0)
   const [newChatOpen, setNewChatOpen] = useState(false)
   const [endChatId, setEndChatId] = useState<string | null>(null)
   const [renameChatId, setRenameChatId] = useState<string | null>(null)
@@ -93,13 +94,20 @@ function App(): React.JSX.Element {
     void window.api.projects.setCollapsed(projectId, !project.collapsed)
   }
 
+  // Clicking a chat in the sidebar should land the keyboard in the terminal.
+  // Bumping focusTick is enough — Terminal listens for the change.
+  const handleSelectChat = (chatId: string): void => {
+    setActiveChatId(chatId)
+    setFocusTick((t) => t + 1)
+  }
+
   return (
     <div className="app">
       <Sidebar
         chats={chats}
         projects={projects}
         activeChatId={activeChatId}
-        onSelect={setActiveChatId}
+        onSelect={handleSelectChat}
         onNewChat={() => setNewChatOpen(true)}
         onNewProject={() => setNewProjectOpen(true)}
         onChatRename={(chatId) => setRenameChatId(chatId)}
@@ -138,7 +146,7 @@ function App(): React.JSX.Element {
               </button>
             </header>
             <div className="terminal-card">
-              <Terminal key={activeChat.id} chatId={activeChat.id} />
+              <Terminal key={activeChat.id} chatId={activeChat.id} focusTick={focusTick} />
             </div>
           </>
         ) : (
